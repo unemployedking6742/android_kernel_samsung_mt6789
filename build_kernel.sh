@@ -111,6 +111,28 @@ print_msg "$GREEN" "Modified configs ..."
 cd kernel-5.10
 
 # ========================================
+# FIX MEDIATEK ECCCI UNUSED VARIABLES
+# ========================================
+print_msg "$GREEN" "Fixing MediaTek ECCCI unused variables..."
+
+find "drivers/misc/mediatek/eccci" -name "*.c" -exec sed -i \
+    -e 's/void \*md_img_addr/void *md_img_addr __attribute__((unused))/g' \
+    -e 's/int md_img_len/int md_img_len __attribute__((unused))/g' \
+    {} \; || true
+
+print_msg "$GREEN" "ECCCI fix applied."
+
+# ========================================
+# STRIP -WERROR FROM MEDIATEK DRIVERS
+# ========================================
+print_msg "$GREEN" "Stripping -Werror from MediaTek drivers..."
+
+find "drivers/misc/mediatek" -name "Makefile" -exec sed -i 's/ -Werror / /g' {} \; || true
+find "drivers/misc/mediatek" -name "Kbuild" -exec sed -i 's/ -Werror / /g' {} \; || true
+
+print_msg "$GREEN" "MediaTek -Werror stripped."
+
+# ========================================
 # SETUP KERNELSU-NEXT
 # ========================================
 print_msg "$GREEN" "Setting up KernelSU-Next..."
