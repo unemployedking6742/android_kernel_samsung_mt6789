@@ -133,6 +133,29 @@ find "drivers/misc/mediatek" -name "Kbuild" -exec sed -i 's/ -Werror / /g' {} \;
 print_msg "$GREEN" "MediaTek -Werror stripped."
 
 # ========================================
+# FIX MEDIATEK DRIVER ERRORS
+# ========================================
+print_msg "$GREEN" "Fixing MediaTek driver errors..."
+
+# ECCCI unused variables
+find "drivers/misc/mediatek/eccci" -name "*.c" -exec sed -i \
+    -e 's/void \*md_img_addr/void *md_img_addr __attribute__((unused))/g' \
+    -e 's/int md_img_len/int md_img_len __attribute__((unused))/g' \
+    {} \; || true
+
+# perf_common: add missing slab.h
+sed -i '1i #include <linux/slab.h>' "drivers/misc/mediatek/perf_common/perf_freq_tracker.c" || true
+
+# adsp: mark unused variable
+sed -i 's/static bool suppress_test_ee;/static bool suppress_test_ee __attribute__((unused));/' "drivers/misc/mediatek/adsp/adsp_excep.c" || true
+
+# Nuclear: strip -Werror from ALL MediaTek Makefiles
+find "drivers/misc/mediatek" -name "Makefile" -exec sed -i 's/ -Werror / /g' {} \; || true
+find "drivers/misc/mediatek" -name "Kbuild" -exec sed -i 's/ -Werror / /g' {} \; || true
+
+print_msg "$GREEN" "MediaTek fixes applied."
+
+# ========================================
 # SETUP KERNELSU-NEXT
 # ========================================
 print_msg "$GREEN" "Setting up KernelSU-Next..."
