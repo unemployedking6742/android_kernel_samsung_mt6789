@@ -62,7 +62,7 @@ print_msg "$GREEN" "Modifying configs..."
 --set-val RKP_CRED n
 
 # ========================================
-# TELEMETRY / DEBUG DISABLES (FRAGMENT) — FIXED PREFIX
+# TELEMETRY / DEBUG DISABLES (FRAGMENT)
 # ========================================
 ./kernel-5.10/scripts/config --file kernel-5.10/arch/arm64/configs/a15_00_defconfig \
 --set-val SAMSUNG_PRODUCT_SHIP n \
@@ -111,47 +111,34 @@ print_msg "$GREEN" "Modified configs ..."
 cd kernel-5.10
 
 # ========================================
-# FIX MEDIATEK ECCCI UNUSED VARIABLES
-# ========================================
-print_msg "$GREEN" "Fixing MediaTek ECCCI unused variables..."
-
-find "drivers/misc/mediatek/eccci" -name "*.c" -exec sed -i \
-    -e 's/void \*md_img_addr/void *md_img_addr __attribute__((unused))/g' \
-    -e 's/int md_img_len/int md_img_len __attribute__((unused))/g' \
-    {} \; || true
-
-print_msg "$GREEN" "ECCCI fix applied."
-
-# ========================================
-# STRIP -WERROR FROM MEDIATEK DRIVERS
-# ========================================
-print_msg "$GREEN" "Stripping -Werror from MediaTek drivers..."
-
-find "drivers/misc/mediatek" -name "Makefile" -exec sed -i 's/ -Werror / /g' {} \; || true
-find "drivers/misc/mediatek" -name "Kbuild" -exec sed -i 's/ -Werror / /g' {} \; || true
-
-print_msg "$GREEN" "MediaTek -Werror stripped."
-
-# ========================================
-# FIX MEDIATEK DRIVER ERRORS
+# FIX MEDIATEK DRIVER -WERROR ISSUES
 # ========================================
 print_msg "$GREEN" "Fixing MediaTek driver errors..."
 
-# ECCCI unused variables
+# 1. ECCCI: unused variables
 find "drivers/misc/mediatek/eccci" -name "*.c" -exec sed -i \
     -e 's/void \*md_img_addr/void *md_img_addr __attribute__((unused))/g' \
     -e 's/int md_img_len/int md_img_len __attribute__((unused))/g' \
     {} \; || true
 
-# perf_common: add missing slab.h
+# 2. perf_common: add missing slab.h
 sed -i '1i #include <linux/slab.h>' "drivers/misc/mediatek/perf_common/perf_freq_tracker.c" || true
 
-# adsp: mark unused variable
+# 3. adsp: mark unused variable
 sed -i 's/static bool suppress_test_ee;/static bool suppress_test_ee __attribute__((unused));/' "drivers/misc/mediatek/adsp/adsp_excep.c" || true
 
-# Nuclear: strip -Werror from ALL MediaTek Makefiles
-find "drivers/misc/mediatek" -name "Makefile" -exec sed -i 's/ -Werror / /g' {} \; || true
-find "drivers/misc/mediatek" -name "Kbuild" -exec sed -i 's/ -Werror / /g' {} \; || true
+# 4. SPMI: add missing aee.h include path (create a stub header if needed)
+mkdir -p include/linux/mediatek
+cat > include/linux/mediatek/aee.h <<'EOF'
+#ifndef _LINUX_MTK_AEE_H
+#define _LINUX_MTK_AEE_H
+extern void aee_kernel_warning(const char *module, const char *msg);
+#endif
+EOF
+
+# 5. Strip -Werror from ALL MediaTek Makefiles (deeper find)
+find "drivers/misc/mediatek" -type f \( -name "Makefile" -o -name "Kbuild" -o -name "*.mk" \) -exec sed -i 's/-Werror//g' {} \; || true
+find "drivers/spmi" -type f \( -name "Makefile" -o -name "Kbuild" -o -name "*.mk" \) -exec sed -i 's/-Werror//g' {} \; || true
 
 print_msg "$GREEN" "MediaTek fixes applied."
 
@@ -189,7 +176,7 @@ print_msg "$GREEN" "Applying final config overrides to merged .config..."
 
 MERGED_CONFIG="../out/target/product/a15/obj/KERNEL_OBJ/.config"
 
-./kernel-5.10/scripts/config --file "$MERGED_CONFIG" \
+./scripts/config --file "$MERGED_CONFIG" \
 --set-val IP_NF_TARGET_TTL y \
 --set-val IP6_NF_TARGET_HL y \
 --set-val IP6_NF_MATCH_HL y \
@@ -264,10 +251,17 @@ export CROSS_COMPILE_COMPAT="arm-linux-gnueabi-"
 export OUT_DIR="../out/target/product/a15/obj/KERNEL_OBJ"
 export DIST_DIR="../out/target/product/a15/obj/KERNEL_OBJ"
 export BUILD_CONFIG="../out/target/product/a15/obj/KERNEL_OBJ/build.config"
+
+# ========================================
+# GLOBAL -WERROR DISABLE (MUST BE LAST)
+# ========================================
+print_msg "$GREEN" "Disabling -Werror globally..."
+
 export KBUILD_CFLAGS="-Wno-error"
 export KCFLAGS="-Wno-error"
 export EXTRA_CFLAGS="-Wno-error"
 export CFLAGS="-Wno-error"
+
 print_msg "$GREEN" "Building Kernel..."
 
 cd ../kernel
