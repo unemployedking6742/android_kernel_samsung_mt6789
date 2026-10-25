@@ -56,15 +56,27 @@ print_msg "$GREEN" "Modifying configs..."
 --set-val KDP_TEST n \
 --set-val RKP_CRED n
 
+# Kernel optimizations
 ./kernel-5.10/scripts/config --file kernel-5.10/arch/arm64/configs/a15_00_defconfig \
 --set-val TMPFS_XATTR y \
 --set-val IP_NF_TARGET_TTL y \
 --set-val TCP_CONG_ADVANCED y \
 --set-val TCP_CONG_BBR y \
 --set-val NET_SCH_FQ y \
---set-val TCP_CONG_BIC y \
---set-val DEFAULT_BBR y \
+--set-val NET_SCH_FQ_CODEL y \
+--set-val TCP_CONG_CUBIC y \
+--set-val TCP_CONG_BIC n \
+--set-val TCP_CONG_WESTWOOD n \
+--set-val TCP_CONG_HTCP n \
+--set-val NET_SCH_CAKE y \
+--set-val NET_SCH_PIE y \
+--set-val NET_SCH_FQ_PIE y \
+--set-val TCP_CONG_BBR3 y \
+--set-val DEFAULT_BBR3 y \
+--set-val DEFAULT_BIC n \
 --set-str DEFAULT_TCP_CONG "bbr" \
+--set-val DEFAULT_RENO n \
+--set-val DEFAULT_CUBIC n
 
 print_msg "$GREEN" "Modified configs ..."
 
@@ -76,6 +88,13 @@ curl -LSs "https://raw.githubusercontent.com/maxsteeel/nomount/refs/heads/dev/ke
 # Force enable the config flag just in case the script missed it
 ./scripts/config --file arch/arm64/configs/a15_00_defconfig --set-val NOMOUNT y
 print_msg "$GREEN" "NoMount setup complete."
+
+# Apply BBRv3
+print_msg "$GREEN" "Applying BBRv3 patches..."
+patch -p1 < ../patches/bbrv3/0001-net-tcp-backport-BBRv3-to-android12-5.10.patch || true
+patch -p1 < ../patches/bbrv3/sysctl_add_proc_dou8vec_minmax.patch || true
+patch -p1 < ../patches/bbrv3/sysctl_fix_data-races_in_proc_dou8vec_minmax.patch || true
+print_msg "$GREEN" "BBRv3 patches applied."
 
 print_msg "$GREEN" "Generating configs..."
 
