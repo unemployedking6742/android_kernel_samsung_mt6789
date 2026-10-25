@@ -89,11 +89,14 @@ curl -LSs "https://raw.githubusercontent.com/maxsteeel/nomount/refs/heads/dev/ke
 ./scripts/config --file arch/arm64/configs/a15_00_defconfig --set-val NOMOUNT y
 print_msg "$GREEN" "NoMount setup complete."
 
-# Apply BBRv3
+# Apply BBRv3 Patches
 print_msg "$GREEN" "Applying BBRv3 patches..."
 patch -p1 < ../patches/bbrv3/0001-net-tcp-backport-BBRv3-to-android12-5.10.patch || true
-patch -p1 < ../patches/bbrv3/sysctl_add_proc_dou8vec_minmax.patch || true
-patch -p1 < ../patches/bbrv3/sysctl_fix_data-races_in_proc_dou8vec_minmax.patch || true
+
+if ! grep -qF 'int proc_dou8vec_minmax(' ./include/linux/sysctl.h; then
+    patch -p1 < ../patches/bbrv3/sysctl_add_proc_dou8vec_minmax.patch || true
+    patch -p1 < ../patches/bbrv3/sysctl_fix_data-races_in_proc_dou8vec_minmax.patch || true
+fi
 print_msg "$GREEN" "BBRv3 patches applied."
 
 print_msg "$GREEN" "Generating configs..."
