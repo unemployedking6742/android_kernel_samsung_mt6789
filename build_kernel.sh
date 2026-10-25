@@ -68,14 +68,14 @@ print_msg "$GREEN" "Modifying configs..."
 
 print_msg "$GREEN" "Modified configs ..."
 
-# Setup NoMount
-print_msg "$GREEN" "Setting up NoMount..."
-curl -LSs "https://raw.githubusercontent.com/maxsteeel/nomount/refs/heads/dev/kernel/setup.sh" | bash -s dev
-print_msg "$GREEN" "NoMount setup complete."
-
 cd kernel-5.10
 
-print_msg "$GREEN" "Setting up KernelSU..."
+# Setup NoMount (MUST be inside kernel-5.10)
+print_msg "$GREEN" "Setting up NoMount..."
+curl -LSs "https://raw.githubusercontent.com/maxsteeel/nomount/refs/heads/dev/kernel/setup.sh" | bash -s dev
+# Force enable the config flag just in case the script missed it
+./scripts/config --file arch/arm64/configs/a15_00_defconfig --set-val NOMOUNT y
+print_msg "$GREEN" "NoMount setup complete."
 
 print_msg "$GREEN" "Generating configs..."
 
