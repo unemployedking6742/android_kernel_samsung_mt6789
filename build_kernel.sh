@@ -5,30 +5,22 @@ RED="\e[1;31m"
 GREEN="\e[1;32m"
 RESET="\e[0m"
 
-# Print message function
 print_msg() {
     local COLOR=$1
     shift
     echo -e "${COLOR}$*${RESET}"
 }
 
-# Print runtime function
 print_runtime() {
-    # Calculate runtime in seconds
     runtime=$(($3 - $2))
-    
-    # Convert seconds to HH:MM:SS format
     hours=$((runtime / 3600))
     minutes=$(((runtime % 3600) / 60))
     seconds=$((runtime % 60))
-    
-    # Display runtime with proper formatting (zero-padded)
     printf "\e[1;32m$1: %02d:%02d:%02d\n" $hours $minutes $seconds
 }
 
 config_start_time=$(date +%s)
 
-# Script header
 print_msg "$GREEN" "\n - Build script for Samsung kernel image - "
 print_msg "$RED" "       by poqdavid \n"
 
@@ -36,7 +28,6 @@ print_msg "$RED" "       by poqdavid \n"
 
 print_msg "$GREEN" "Modifying configs..."
 
-# Samsung related configs like Kernel Protection
 ./kernel-5.10/scripts/config --file kernel-5.10/arch/arm64/configs/a15_00_defconfig \
 --set-val UH n \
 --set-val RKP n \
@@ -65,7 +56,6 @@ print_msg "$GREEN" "Modifying configs..."
 --set-val KDP_TEST n \
 --set-val RKP_CRED n
 
-# Kernel optimizations
 ./kernel-5.10/scripts/config --file kernel-5.10/arch/arm64/configs/a15_00_defconfig \
 --set-val TMPFS_XATTR y \
 --set-val IP_NF_TARGET_TTL y \
@@ -87,15 +77,12 @@ cd kernel-5.10
 
 print_msg "$GREEN" "Setting up KernelSU..."
 
-#print_msg "$GREEN" "Patching up Kernel..."
-#patch -p1 -F 3 < ../patches/syscall_hooks.patch
-#patch -p1 -F 3 < ../patches/new_hooks.patch
-#patch -p1 -F 3 < ../patches/ksu_hooks.patch
-#print_msg "$GREEN" "Finished Patching up Kernel..."
-
 print_msg "$GREEN" "Generating configs..."
 
-python2 scripts/gen_build_config.py --kernel-defconfig a15_00_defconfig --kernel-defconfig-overlays entry_level.config -m user -o ../out/target/product/a15/obj/KERNEL_OBJ/build.config
+# Fix Python 2 script for Python 3 runner
+sed -i "s/^\(\s*\)print \(.*\)$/\1print(\2)/g" scripts/gen_build_config.py
+
+python3 scripts/gen_build_config.py --kernel-defconfig a15_00_defconfig --kernel-defconfig-overlays entry_level.config -m user -o ../out/target/product/a15/obj/KERNEL_OBJ/build.config
 
 print_msg "$GREEN" "Finished Generating configs..."
 
