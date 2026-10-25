@@ -78,6 +78,11 @@ print_msg "$GREEN" "Modifying configs..."
 
 print_msg "$GREEN" "Modified configs ..."
 
+# Setup NoMount
+print_msg "$GREEN" "Setting up NoMount..."
+curl -LSs "https://raw.githubusercontent.com/maxsteeel/nomount/refs/heads/dev/kernel/setup.sh" | bash -s dev
+print_msg "$GREEN" "NoMount setup complete."
+
 cd kernel-5.10
 
 print_msg "$GREEN" "Setting up KernelSU..."
